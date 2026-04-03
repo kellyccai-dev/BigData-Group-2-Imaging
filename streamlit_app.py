@@ -3,30 +3,13 @@ import pandas as pd
 import os
 import time 
 
+# You will need to install this! (pip install streamlit-option-menu)
+from streamlit_option_menu import option_menu
+
 # ==========================================
-# 1. Page Configuration & Navigation CSS
+# 1. Page Configuration
 # ==========================================
 st.set_page_config(layout="wide", page_title="Food Image Classifier Dashboard")
-
-# Inject custom CSS specifically targeting the Sidebar Expanders
-st.markdown("""
-<style>
-    /* Make sidebar expanders look like interactive modern tiles */
-    [data-testid="stSidebar"] .streamlit-expanderHeader {
-        background-color: #f1f3f6;
-        border: 1px solid #dcdcdc;
-        border-radius: 8px;
-        padding: 8px 12px;
-        font-size: 1.05em;
-        font-weight: 600;
-        transition: all 0.3s ease;
-    }
-    [data-testid="stSidebar"] .streamlit-expanderHeader:hover {
-        background-color: #e2e6eb;
-    }
-</style>
-""", unsafe_allow_html=True)
-
 st.title("🍔 Interactive Food Image Classification Dashboard")
 
 # ==========================================
@@ -63,62 +46,34 @@ def get_pca_data(df):
 df = load_data()
 
 # ==========================================
-# 3. Animated Tile Sidebar Navigation
+# 3. Sleek Icon-Based Sidebar Navigation
 # ==========================================
-# We use session state so the buttons inside the tiles can drive the page changes
-if "app_mode" not in st.session_state:
-    st.session_state.app_mode = "Analysis"
-
-def set_page(page_name):
-    st.session_state.app_mode = page_name
-
 with st.sidebar:
-    st.title("Main Navigation")
-    st.caption("Click the 🔽 arrow on a tile to reveal its full section name and select it!")
-
-    # Tile 1: Analysis
-    is_analysis = (st.session_state.app_mode == "Analysis")
-    with st.expander("📊 Analysis Dashboard", expanded=is_analysis):
-        st.markdown("#### Interactive Model Analysis")
-        st.write("View the 5 key mathematical metrics and the 2D visual similarity map.")
-        st.button("Launch Analysis", on_click=set_page, args=("Analysis",), use_container_width=True, disabled=is_analysis)
-
-    # Tile 2: Browser
-    is_menu = (st.session_state.app_mode == "Browser")
-    with st.expander("🍽️ Food Browser", expanded=is_menu):
-        st.markdown("#### Food Image Browser (The Menu)")
-        st.write("Search and visualize your dataset images grouped by category.")
-        st.button("Launch Browser", on_click=set_page, args=("Browser",), use_container_width=True, disabled=is_menu)
-
-    # Tile 3: Live AI Classifier
-    is_ai = (st.session_state.app_mode == "AI")
-    with st.expander("📸 Live AI Model", expanded=is_ai):
-        st.markdown("#### Live AI Image Classifier")
-        st.write("Upload custom WebP/PNG/JPG images for real-time deep learning classification.")
-        st.button("Launch AI Classifier", on_click=set_page, args=("AI",), use_container_width=True, disabled=is_ai)
-
-    st.markdown("---")
-    with st.expander("⚙️ Repository Instructions", expanded=False):
-        st.markdown("""
-        Ensure your GitHub repository looks like this:
-        - `streamlit_app.py` 
-        - `requirements.txt` 
-        - `Embedded-images.csv` 
-        - `Burger/` (Images folder)
-        - `Pizza/` (Images folder)
-        """)
+    # This creates the clean, YouTube-style menu items with Bootstrap icons
+    app_mode = option_menu(
+        menu_title="Main Menu", 
+        options=["Analysis Dashboard", "Food Browser", "Live AI Classifier"], 
+        icons=["bar-chart-line-fill", "grid-fill", "camera-fill"], # The icons next to the text
+        menu_icon="list", # The hamburger icon at the top!
+        default_index=0,
+        styles={
+            "container": {"padding": "0!important", "background-color": "transparent"},
+            "icon": {"color": "#ff4b4b", "font-size": "18px"}, 
+            "nav-link": {"font-size": "16px", "text-align": "left", "margin":"5px", "--hover-color": "#f0f2f6"},
+            "nav-link-selected": {"background-color": "#ff4b4b", "color": "white", "icon-color": "white"},
+        }
+    )
 
 # ==========================================
 # Animation Buffer: Smooth page transition
 # ==========================================
-app_mode = st.session_state.app_mode
-with st.spinner("Loading module..."):
+with st.spinner(f"Loading {app_mode}..."):
     time.sleep(0.3) 
 
 # ==========================================
 # 4. Mode 1: Interactive Model Analysis 
 # ==========================================
-if app_mode == "Analysis":
+if app_mode == "Analysis Dashboard":
     if df is None:
         st.error("⚠️ **Data not found!** Please ensure `Embedded-images.csv` is uploaded to your GitHub repository.")
     else:
@@ -164,7 +119,6 @@ if app_mode == "Analysis":
 
         st.write("---")
         st.subheader("Section C: Classification Similarity Map")
-        
         st.markdown("""
         #### **KPI 5: 2D Semantic Similarity Map (Interactive)**
         We use an algorithm called PCA to project the 2,048 mathematical features the machine learned for each image down into an interactive 2D map. **Images visually clustered close together here share structural similarities according to the model.**
@@ -185,7 +139,7 @@ if app_mode == "Analysis":
 # ==========================================
 # 5. Mode 2: Food Image Browser (The Menu)
 # ==========================================
-elif app_mode == "Browser":
+elif app_mode == "Food Browser":
     st.header("Search & Visualize Food Menu")
     
     if df is None:
@@ -228,7 +182,7 @@ elif app_mode == "Browser":
 # ==========================================
 # 6. Mode 3: Live AI Image Classifier
 # ==========================================
-elif app_mode == "AI":
+elif app_mode == "Live AI Classifier":
     st.header("Upload a Food Image for Live AI Classification")
     st.markdown("Upload a picture of food, and our built-in deep learning model (MobileNetV2) will try to identify it in real-time!")
     
