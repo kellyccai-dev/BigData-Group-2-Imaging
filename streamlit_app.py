@@ -1,7 +1,5 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
-from sklearn.decomposition import PCA
 import os
 
 # ==========================================
@@ -11,34 +9,62 @@ st.set_page_config(layout="wide", page_title="Food Image Classifier Dashboard")
 st.title("🍔 Interactive Food Image Classification Dashboard")
 
 # ==========================================
-# 2. Data Loading Function
+# 2. Data Loading & Heavy Math (Cached for Speed)
 # ==========================================
 @st.cache_data
 def load_data():
     try:
-        # Orange CSV files have metadata in rows 1 and 2, so we skip them for clean pandas importing
+        # Load CSV, skipping Orange metadata
         df = pd.read_csv('Embedded-images.csv', header=0, skiprows=[1, 2])
         
-        # Sort clusters logically (C1, C2, ..., C11) for better chart visuals
+        # De-fragment the dataframe (fixes the PerformanceWarning!)
+        df = df.copy() 
+        
+        # Sort clusters logically (C1, C2, ..., C11) 
         if 'Cluster' in df.columns:
-            df['Cluster_num'] = df['Cluster'].str.extract('(\d+)').astype(int)
+            # Added 'r' before the string to fix the invalid escape sequence warning
+            df['Cluster_num'] = df['Cluster'].str.extract(r'(\d+)').astype(float)
             df = df.sort_values('Cluster_num').drop(columns=['Cluster_num'])
+            
+            # Final copy to ensure clean memory
+            df = df.copy() 
         return df
     except Exception as e:
+        st.error(f"Error reading dataset: {e}")
         return None
+
+@st.cache_data
+def get_pca_data(df):
+    # Lazy Import: We only import sklearn if this function is called
+    from sklearn.decomposition import PCA
+    
+    feature_cols = [col for col in df.columns if col.startswith('n') and col[1:].isdigit()]
+    if not feature_cols:
+        return None
+        
+    features = df[feature_cols]
+    pca = PCA(n_components=2)
+    pca_result = pca.fit_transform(features)
+    
+    # We create a lightweight dataframe with ONLY the columns needed for the chart 
+    # to prevent memory lag when rendering the dashboard
+    df_pca = df[['image name', 'category', 'Cluster', 'width', 'height']].copy()
+    df_pca['PCA1'] = pca_result[:, 0]
+    df_pca['PCA2'] = pca_result[:, 1]
+    return df_pca
 
 df = load_data()
 
 # ==========================================
-# 3. Sidebar Setup & Instructions
+# 3. Sidebar Setup
 # ==========================================
 with st.sidebar:
     st.title("Main Navigation")
     app_mode = st.radio("Choose the view", [
-    "📊 Interactive Model Analysis", 
-    "🍽️ Food Image Browser (The Menu)",
-    "📸 Live AI Image Classifier" # <-- Added this line
-])
+        "📊 Interactive Model Analysis", 
+        "🍽️ Food Image Browser (The Menu)",
+        "📸 Live AI Image Classifier"
+    ])
     
     st.markdown("---")
     st.title("⚙️ Repository Setup Instructions")
@@ -49,7 +75,6 @@ with st.sidebar:
     - `Embedded-images.csv` (The data)
     - `Burger/` (Folder containing burger images)
     - `Pizza/` (Folder containing pizza images)
-    - *(...and so on for the other categories)*
     """)
 
 # ==========================================
@@ -57,8 +82,11 @@ with st.sidebar:
 # ==========================================
 if app_mode == "📊 Interactive Model Analysis":
     if df is None:
-        st.error("⚠️ **Data not found!** Please ensure `Embedded-images.csv` is uploaded to your GitHub repository in the same folder as this script.")
+        st.error("⚠️ **Data not found!** Please ensure `Embedded-images.csv` is uploaded to your GitHub repository.")
     else:
+        # Lazy Import: Plotly only loads when the Analysis tab is clicked, speeding up the app boot time!
+        import plotly.express as px
+        
         st.markdown("### Interactive Model Performance & Interpretation Metrics")
         st.markdown("These charts are generated dynamically from your Orange output data. **Hover your mouse over the plots to interact with them!**")
         
@@ -68,21 +96,23 @@ if app_mode == "📊 Interactive Model Analysis":
         col1, col2 = st.columns(2)
         
         with col1:
-            # KPI 1: Cluster Dot Plot (Stripplot)
             fig1 = px.strip(df, x='Cluster', y='category', color='category', 
                             hover_data=['image name'], stripmode='overlay',
                             title="KPI 1: Cluster Membership Dot Plot")
             fig1.update_layout(showlegend=False)
-            st.plotly_chart(fig1, use_container_width=True)
+            
+            # Replaced deprecated use_container_width=True with width="stretch"
+            st.plotly_chart(fig1, width="stretch")
             
         with col2:
-            # KPI 2: 100% Stacked Bar Composition
             composition = df.groupby(['Cluster', 'category']).size().reset_index(name='count')
             composition['Percentage'] = composition.groupby('Cluster')['count'].transform(lambda x: x / x.sum() * 100)
             fig2 = px.bar(composition, x='Cluster', y='Percentage', color='category', 
                           title="KPI 2: Category Breakdown (100% Stacked Bar)")
             fig2.update_layout(yaxis_title="Percentage (%)")
-            st.plotly_chart(fig2, use_container_width=True)
+            
+            # Replaced deprecated use_container_width=True with width="stretch"
+            st.plotly_chart(fig2, width="stretch")
 
         st.write("---")
         st.subheader("Section B: Metric Analysis Deep Dive")
@@ -90,45 +120,35 @@ if app_mode == "📊 Interactive Model Analysis":
         col3, col4 = st.columns(2)
         
         with col3:
-            # KPI 3: Heatmap of Categories to Clusters
             heatmap_data = df.groupby(['category', 'Cluster']).size().unstack(fill_value=0)
             fig3 = px.imshow(heatmap_data, text_auto=True, aspect="auto", color_continuous_scale='Blues',
                              title="KPI 3: Category to Cluster Heatmap")
-            st.plotly_chart(fig3, use_container_width=True)
+            st.plotly_chart(fig3, width="stretch")
             
         with col4:
-            # KPI 4: Image Dimensions and File Sizes (Feature Metrics)
             fig4 = px.scatter(df, x='width', y='height', color='category', size='size',
                               hover_data=['image name'],
                               title="KPI 4: Image Dimensions vs. File Size")
-            st.plotly_chart(fig4, use_container_width=True)
+            st.plotly_chart(fig4, width="stretch")
 
         st.write("---")
         st.subheader("Section C: Classification Similarity Map")
         
-        # KPI 5: PCA Mapping (Replaces the static Dendrogram)
         st.markdown("""
         #### **KPI 5: 2D Semantic Similarity Map (Interactive)**
-        *Note: This replaces the static Orange dendrogram with a far more advanced interactive visual.* We use an algorithm called PCA to project the 2,048 mathematical features the machine learned for each image down into an interactive 2D map. **Images visually clustered close together here share structural similarities according to the model.**
+        We use an algorithm called PCA to project the 2,048 mathematical features the machine learned for each image down into an interactive 2D map. **Images visually clustered close together here share structural similarities according to the model.**
         """)
         
-        # Extract the machine learning embedding features (n0 to n2047)
-        feature_cols = [col for col in df.columns if col.startswith('n') and col[1:].isdigit()]
-        if feature_cols:
-            features = df[feature_cols]
-            pca = PCA(n_components=2) # Compress to 2D
-            pca_result = pca.fit_transform(features)
-            
-            df_pca = df.copy()
-            df_pca['PCA1'] = pca_result[:, 0]
-            df_pca['PCA2'] = pca_result[:, 1]
-            
+        # Load the lightweight PCA data
+        df_pca = get_pca_data(df)
+        
+        if df_pca is not None:
             fig5 = px.scatter(df_pca, x='PCA1', y='PCA2', color='Cluster', symbol='category',
                               hover_data=['image name', 'category', 'width', 'height'],
                               title="Interactive Cluster Similarity Map",
                               height=600)
             fig5.update_traces(marker=dict(size=12, opacity=0.8, line=dict(width=1, color='DarkSlateGrey')))
-            st.plotly_chart(fig5, use_container_width=True)
+            st.plotly_chart(fig5, width="stretch")
         else:
             st.warning("Machine learning feature columns (n0-n2047) not found in the dataset.")
 
@@ -141,19 +161,17 @@ elif app_mode == "🍽️ Food Image Browser (The Menu)":
     if df is None:
         st.error("⚠️ Please upload `Embedded-images.csv` to enable the menu features.")
     else:
-        # Pull categories directly from your dataset
         categories = sorted(df['category'].unique().tolist())
         search_category = st.selectbox("Select a Food Category to View:", categories)
         
         st.subheader(f"Menu Items: {search_category}")
         
-        # Filter dataframe for selected category
         cat_df = df[df['category'] == search_category]
         
         if len(cat_df) == 0:
             st.info("No images found for this category in the dataset.")
         else:
-            images_to_show = cat_df.head(12) # Shows a grid of up to 12 images
+            images_to_show = cat_df.head(12) 
             
             columns_per_row = 4
             num_rows = -(-len(images_to_show) // columns_per_row)
@@ -165,19 +183,19 @@ elif app_mode == "🍽️ Food Image Browser (The Menu)":
                     if idx < len(images_to_show):
                         row_data = images_to_show.iloc[idx]
                         
-                        # The CSV already contains the relative path (e.g., 'Burger/Burger 1.png')
                         img_path = row_data['image'] 
                         img_name = row_data['image name']
                         cluster = row_data['Cluster']
                         
                         with cols[c]:
-                            # Automatically links the file paths from your CSV to your GitHub folders!
                             if os.path.exists(img_path):
-                                st.image(img_path, use_column_width=True)
+                                # Replaced deprecated use_column_width=True with use_container_width=True
+                                st.image(img_path, use_container_width=True)
                             else:
-                                st.image("https://via.placeholder.com/300x300.png?text=Upload+Images+To+GitHub", use_column_width=True)
+                                st.image("https://via.placeholder.com/300x300.png?text=Upload+Images+To+GitHub", use_container_width=True)
                             
                             st.caption(f"**{img_name}** | AI Assigned: {cluster}")
+
 # ==========================================
 # 6. Mode 3: Live AI Image Classifier
 # ==========================================
@@ -185,18 +203,16 @@ elif app_mode == "📸 Live AI Image Classifier":
     st.header("Upload a Food Image for Live AI Classification")
     st.markdown("Upload a picture of food, and our built-in deep learning model (MobileNetV2) will try to identify it in real-time!")
     
-    # We import these here so they only load when this specific page is opened
+    # Lazy Imports: TensorFlow ONLY loads if this specific page is opened! (Massive speed boost)
     from PIL import Image
     import numpy as np
     import tensorflow as tf
     
-    # 1. File Uploader Widget
+    # WebP support included
     uploaded_file = st.file_uploader("Choose an image file (JPG/PNG/WEBP)...", type=["jpg", "jpeg", "png", "webp"])
     
-    # 2. Load the AI Model (Cached so it doesn't download every time)
     @st.cache_resource
     def load_model():
-        # MobileNetV2 is fast and lightweight for web apps
         model = tf.keras.applications.MobileNetV2(weights='imagenet')
         return model
     
@@ -205,9 +221,9 @@ elif app_mode == "📸 Live AI Image Classifier":
         
         with col1:
             st.subheader("Your Uploaded Image")
-            # Open and display the image
-            image = Image.open(uploaded_file)
-            st.image(image, use_column_width=True)
+            # Converts to standard RGB to prevent WebP/PNG transparency crashes
+            image = Image.open(uploaded_file).convert('RGB')
+            st.image(image, use_container_width=True)
             
         with col2:
             st.subheader("🤖 AI Predictions")
@@ -215,17 +231,14 @@ elif app_mode == "📸 Live AI Image Classifier":
                 try:
                     model = load_model()
                     
-                    # 3. Preprocess the image to fit the AI's required format (224x224 pixels)
                     img_resized = image.resize((224, 224))
                     img_array = tf.keras.preprocessing.image.img_to_array(img_resized)
                     img_array = np.expand_dims(img_array, axis=0)
                     img_array = tf.keras.applications.mobilenet_v2.preprocess_input(img_array)
                     
-                    # 4. Make the prediction
                     predictions = model.predict(img_array)
                     decoded_preds = tf.keras.applications.mobilenet_v2.decode_predictions(predictions, top=3)[0]
                     
-                    # 5. Display the results beautifully
                     st.success("Analysis Complete!")
                     for i, (imagenet_id, label, probability) in enumerate(decoded_preds):
                         st.write(f"**#{i+1}: {label.replace('_', ' ').title()}**")
