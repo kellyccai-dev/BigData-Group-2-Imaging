@@ -2,7 +2,7 @@ streamlit
 pandas
 streamlit-option-menu
 scikit-learn
-tensorflow
+tensorflow-cpu
 Pillow
 numpy
 plotly
