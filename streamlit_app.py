@@ -34,7 +34,7 @@ st.markdown("""
 st.title("🍔 Interactive Food Image Classification")
 
 # ==========================================
-# 2. Sleek, Mobile-Responsive Top Navigation
+# 2. Sleek, Animated, Mobile-Responsive Top Navigation
 # ==========================================
 app_mode = option_menu(
     menu_title=None, 
@@ -44,25 +44,38 @@ app_mode = option_menu(
     orientation="horizontal",
     styles={
         "container": {
-            "padding": "8px!important", # FIXED: Added padding so the highlight doesn't hit the edges
+            "padding": "8px!important", 
             "background-color": "#f8f9fa", 
             "border-radius": "10px", 
             "margin-bottom": "20px",
-            "display": "flex",
-            "flex-wrap": "wrap",
-            "justify-content": "space-evenly", 
-            "align-items": "center" # FIXED: Centers the items vertically
+            "display": "flex", # Enables dynamic sizing
+            "width": "100%",   # Forces the container to take up all available screen space
         },
-        "icon": {"color": "#ff4b4b", "font-size": "clamp(14px, 2vw, 18px)"}, 
+        "icon": {
+            "color": "#ff4b4b", 
+            "font-size": "22px", # Slightly larger icon to stand alone when collapsed
+        }, 
         "nav-link": {
-            "font-size": "clamp(12px, 1.5vw, 16px)", 
+            "font-size": "0px", # HIDES the text on unselected items
+            "color": "transparent",
             "text-align": "center", 
-            "margin":"0px 5px", # FIXED: Adds slight spacing between buttons
-            "padding":"10px 20px", 
-            "border-radius": "8px", # FIXED: Ensures the hover/active states are nice rounded pills
+            "margin": "0px 5px", 
+            "padding": "12px 10px", 
+            "border-radius": "8px", 
+            "flex": "1", # FIX: Forces unselected items to evenly fill the empty space
+            "transition": "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)", # Adds the smooth expanding animation
+            "display": "flex",
+            "justify-content": "center",
+            "align-items": "center",
+            "gap": "10px", # Creates space between the icon and text when it expands
             "--hover-color": "#e9ecef"
         },
-        "nav-link-selected": {"background-color": "#ff4b4b", "color": "white", "icon-color": "white"},
+        "nav-link-selected": {
+            "font-size": "15px", # REVEALS the text on the selected item
+            "color": "white", 
+            "background-color": "#ff4b4b",
+            "flex": "2.5", # EXPANDS the selected button to be much wider than the others
+        },
     }
 )
 
