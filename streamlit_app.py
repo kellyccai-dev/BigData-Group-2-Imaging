@@ -191,7 +191,7 @@ elif app_mode == "📸 Live AI Image Classifier":
     import tensorflow as tf
     
     # 1. File Uploader Widget
-    uploaded_file = st.file_uploader("Choose an image file (JPG/PNG)...", type=["jpg", "jpeg", "png"])
+    uploaded_file = st.file_uploader("Choose an image file (JPG/PNG/WEBP)...", type=["jpg", "jpeg", "png", "webp"])
     
     # 2. Load the AI Model (Cached so it doesn't download every time)
     @st.cache_resource
