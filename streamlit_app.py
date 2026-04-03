@@ -9,21 +9,18 @@ from streamlit_option_menu import option_menu
 # ==========================================
 st.set_page_config(layout="wide", page_title="Food Image Classifier Dashboard", initial_sidebar_state="collapsed")
 
-# 1. Hide Streamlit's default top right menu and footer
-# 2. Add a CSS keyframe animation for a smooth fade-in effect
+# Hide Streamlit's default menus and add a fade-in animation
 st.markdown("""
 <style>
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
     
-    /* Smooth fade-in and slide-up animation */
     @keyframes fadeIn {
         from { opacity: 0; transform: translateY(15px); }
         to { opacity: 1; transform: translateY(0); }
     }
     
-    /* Apply the animation to the main content area */
     .main .block-container {
         animation: fadeIn 0.5s ease-out;
         padding-top: 2rem; 
@@ -34,7 +31,7 @@ st.markdown("""
 st.title("🍔 Interactive Food Image Classification")
 
 # ==========================================
-# 2. Sleek, Animated, Mobile-Responsive Top Navigation
+# 2. Sleek, Animated Top Navigation
 # ==========================================
 app_mode = option_menu(
     menu_title=None, 
@@ -48,33 +45,33 @@ app_mode = option_menu(
             "background-color": "#f8f9fa", 
             "border-radius": "10px", 
             "margin-bottom": "20px",
-            "display": "flex", # Enables dynamic sizing
-            "width": "100%",   # Forces the container to take up all available screen space
+            "display": "flex", 
+            "width": "100%",   
         },
         "icon": {
             "color": "#ff4b4b", 
-            "font-size": "22px", # Slightly larger icon to stand alone when collapsed
+            "font-size": "22px", 
         }, 
         "nav-link": {
-            "font-size": "0px", # HIDES the text on unselected items
+            "font-size": "0px", 
             "color": "transparent",
             "text-align": "center", 
             "margin": "0px 5px", 
             "padding": "12px 10px", 
             "border-radius": "8px", 
-            "flex": "1", # FIX: Forces unselected items to evenly fill the empty space
-            "transition": "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)", # Adds the smooth expanding animation
+            "flex": "1", 
+            "transition": "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)", 
             "display": "flex",
             "justify-content": "center",
             "align-items": "center",
-            "gap": "10px", # Creates space between the icon and text when it expands
+            "gap": "10px", 
             "--hover-color": "#e9ecef"
         },
         "nav-link-selected": {
-            "font-size": "15px", # REVEALS the text on the selected item
+            "font-size": "15px", 
             "color": "white", 
             "background-color": "#ff4b4b",
-            "flex": "2.5", # EXPANDS the selected button to be much wider than the others
+            "flex": "2.5", 
         },
     }
 )
@@ -117,22 +114,20 @@ df = load_data()
 # ==========================================
 if app_mode == "Analysis Dashboard":
     if df is None:
-        st.error("⚠️ **Data not found!** Please ensure `Embedded-images.csv` is uploaded to your GitHub repository.")
+        st.error("⚠️ **Data not found!** Please ensure `Embedded-images.csv` is uploaded to your working directory.")
     else:
         import plotly.express as px
         
         st.markdown("### Model Performance & Metrics")
-        
         st.write("---")
-        st.subheader("Section A: Cluster Overview & Composition")
         
+        st.subheader("Section A: Cluster Overview & Composition")
         col1, col2 = st.columns(2)
         with col1:
             fig1 = px.strip(df, x='Cluster', y='category', color='category', 
                             hover_data=['image name'], stripmode='overlay',
                             title="KPI 1: Cluster Membership")
             fig1.update_layout(showlegend=False, margin=dict(l=20, r=20, t=40, b=20))
-            # FIXED: Updated deprecation warning
             st.plotly_chart(fig1, width="stretch")
             
         with col2:
@@ -141,19 +136,16 @@ if app_mode == "Analysis Dashboard":
             fig2 = px.bar(composition, x='Cluster', y='Percentage', color='category', 
                           title="KPI 2: Category Breakdown")
             fig2.update_layout(yaxis_title="Percentage (%)", margin=dict(l=20, r=20, t=40, b=20))
-            # FIXED: Updated deprecation warning
             st.plotly_chart(fig2, width="stretch")
 
         st.write("---")
         st.subheader("Section B: Metric Analysis Deep Dive")
-        
         col3, col4 = st.columns(2)
         with col3:
             heatmap_data = df.groupby(['category', 'Cluster']).size().unstack(fill_value=0)
             fig3 = px.imshow(heatmap_data, text_auto=True, aspect="auto", color_continuous_scale='Blues',
                              title="KPI 3: Heatmap")
             fig3.update_layout(margin=dict(l=20, r=20, t=40, b=20))
-            # FIXED: Updated deprecation warning
             st.plotly_chart(fig3, width="stretch")
             
         with col4:
@@ -161,12 +153,10 @@ if app_mode == "Analysis Dashboard":
                               hover_data=['image name'],
                               title="KPI 4: Image Dimensions vs. Size")
             fig4.update_layout(margin=dict(l=20, r=20, t=40, b=20))
-            # FIXED: Updated deprecation warning
             st.plotly_chart(fig4, width="stretch")
 
         st.write("---")
         st.subheader("Section C: Semantic Similarity Map")
-        
         df_pca = get_pca_data(df)
         
         if df_pca is not None:
@@ -175,7 +165,6 @@ if app_mode == "Analysis Dashboard":
                               title="KPI 5: 2D Projection Map")
             fig5.update_traces(marker=dict(size=10, opacity=0.8, line=dict(width=1, color='DarkSlateGrey')))
             fig5.update_layout(margin=dict(l=20, r=20, t=40, b=20))
-            # FIXED: Updated deprecation warning
             st.plotly_chart(fig5, width="stretch")
 
 # ==========================================
@@ -198,7 +187,8 @@ elif app_mode == "Food Browser":
         else:
             images_to_show = cat_df.head(12) 
             
-            columns_per_row = 2 
+            # 4 Columns so they fit beautifully on a PC!
+            columns_per_row = 4 
             num_rows = -(-len(images_to_show) // columns_per_row)
             
             for r in range(num_rows):
@@ -213,7 +203,6 @@ elif app_mode == "Food Browser":
                         cluster = row_data['Cluster']
                         
                         with cols[c]:
-                            # FIXED: Updated deprecation warning
                             if os.path.exists(img_path):
                                 st.image(img_path, width="stretch")
                             else:
@@ -226,15 +215,16 @@ elif app_mode == "Food Browser":
 # ==========================================
 elif app_mode == "Live AI Classifier":
     st.header("Live AI Classification")
-    st.markdown("Upload a picture of food, and our AI will analyze it.")
+    st.markdown("Upload a picture of food, and our upgraded AI will analyze it.")
     
     import tensorflow as tf
     from PIL import Image
     import numpy as np
     
-    @st.cache_resource(show_spinner="Booting up the AI Brain (This takes ~15 seconds on first run)...")
+    # Upgraded AI Model for better feature extraction
+    @st.cache_resource(show_spinner="Booting up the AI Brain (EfficientNetB0)...")
     def load_model():
-        model = tf.keras.applications.MobileNetV2(weights='imagenet')
+        model = tf.keras.applications.EfficientNetB0(weights='imagenet')
         return model
         
     model = load_model()
@@ -248,7 +238,6 @@ elif app_mode == "Live AI Classifier":
         with col1:
             st.subheader("Uploaded Image")
             image = Image.open(uploaded_file).convert('RGB')
-            # FIXED: Updated deprecation warning
             st.image(image, width="stretch")
             
         with col2:
@@ -258,10 +247,10 @@ elif app_mode == "Live AI Classifier":
                     img_resized = image.resize((224, 224))
                     img_array = tf.keras.preprocessing.image.img_to_array(img_resized)
                     img_array = np.expand_dims(img_array, axis=0)
-                    img_array = tf.keras.applications.mobilenet_v2.preprocess_input(img_array)
+                    img_array = tf.keras.applications.efficientnet.preprocess_input(img_array)
                     
                     predictions = model.predict(img_array)
-                    decoded_preds = tf.keras.applications.mobilenet_v2.decode_predictions(predictions, top=3)[0]
+                    decoded_preds = tf.keras.applications.efficientnet.decode_predictions(predictions, top=3)[0]
                     
                     st.success("Analysis Complete!")
                     for i, (imagenet_id, label, probability) in enumerate(decoded_preds):
