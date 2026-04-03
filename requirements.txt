@@ -4,3 +4,4 @@ plotly
 scikit-learn
 Pillow
 tensorflow-cpu
+streamlit-option-menu
