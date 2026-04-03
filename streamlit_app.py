@@ -1,19 +1,56 @@
 import streamlit as st
 import pandas as pd
 import os
-import time 
 
-# You will need to install this! (pip install streamlit-option-menu)
 from streamlit_option_menu import option_menu
 
 # ==========================================
-# 1. Page Configuration
+# 1. Page Configuration & Smooth CSS Animation
 # ==========================================
-st.set_page_config(layout="wide", page_title="Food Image Classifier Dashboard")
+st.set_page_config(layout="wide", page_title="Food Image Classifier Dashboard", initial_sidebar_state="collapsed")
+
+# 1. Hide Streamlit's default top right menu and footer
+# 2. Add a CSS keyframe animation for a smooth fade-in effect
+st.markdown("""
+<style>
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    
+    /* Smooth fade-in and slide-up animation */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(15px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* Apply the animation to the main content area */
+    .main .block-container {
+        animation: fadeIn 0.5s ease-out;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 st.title("🍔 Interactive Food Image Classification Dashboard")
 
 # ==========================================
-# 2. Data Loading & Heavy Math (Cached)
+# 2. Sleek Horizontal Top Navigation
+# ==========================================
+app_mode = option_menu(
+    menu_title=None, 
+    options=["Analysis Dashboard", "Food Browser", "Live AI Classifier"], 
+    icons=["bar-chart-line-fill", "grid-fill", "camera-fill"], 
+    default_index=0,
+    orientation="horizontal",
+    styles={
+        "container": {"padding": "0!important", "background-color": "#f8f9fa", "border-radius": "8px", "margin-bottom": "20px"},
+        "icon": {"color": "#ff4b4b", "font-size": "18px"}, 
+        "nav-link": {"font-size": "16px", "text-align": "center", "margin":"0px", "--hover-color": "#e9ecef"},
+        "nav-link-selected": {"background-color": "#ff4b4b", "color": "white", "icon-color": "white"},
+    }
+)
+
+# ==========================================
+# 3. Data Loading & Heavy Math (Cached)
 # ==========================================
 @st.cache_data
 def load_data():
@@ -44,31 +81,6 @@ def get_pca_data(df):
     return df_pca
 
 df = load_data()
-
-# ==========================================
-# 3. Sleek Icon-Based Sidebar Navigation
-# ==========================================
-with st.sidebar:
-    # This creates the clean, YouTube-style menu items with Bootstrap icons
-    app_mode = option_menu(
-        menu_title="Main Menu", 
-        options=["Analysis Dashboard", "Food Browser", "Live AI Classifier"], 
-        icons=["bar-chart-line-fill", "grid-fill", "camera-fill"], # The icons next to the text
-        menu_icon="list", # The hamburger icon at the top!
-        default_index=0,
-        styles={
-            "container": {"padding": "0!important", "background-color": "transparent"},
-            "icon": {"color": "#ff4b4b", "font-size": "18px"}, 
-            "nav-link": {"font-size": "16px", "text-align": "left", "margin":"5px", "--hover-color": "#f0f2f6"},
-            "nav-link-selected": {"background-color": "#ff4b4b", "color": "white", "icon-color": "white"},
-        }
-    )
-
-# ==========================================
-# Animation Buffer: Smooth page transition
-# ==========================================
-with st.spinner(f"Loading {app_mode}..."):
-    time.sleep(0.3) 
 
 # ==========================================
 # 4. Mode 1: Interactive Model Analysis 
