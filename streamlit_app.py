@@ -44,20 +44,22 @@ app_mode = option_menu(
     orientation="horizontal",
     styles={
         "container": {
-            "padding": "0!important", 
+            "padding": "8px!important", # FIXED: Added padding so the highlight doesn't hit the edges
             "background-color": "#f8f9fa", 
-            "border-radius": "8px", 
+            "border-radius": "10px", 
             "margin-bottom": "20px",
             "display": "flex",
             "flex-wrap": "wrap",
-            "justify-content": "space-evenly" # <-- The magic fix for the PC empty space!
+            "justify-content": "space-evenly", 
+            "align-items": "center" # FIXED: Centers the items vertically
         },
         "icon": {"color": "#ff4b4b", "font-size": "clamp(14px, 2vw, 18px)"}, 
         "nav-link": {
             "font-size": "clamp(12px, 1.5vw, 16px)", 
             "text-align": "center", 
-            "margin":"0px", 
-            "padding":"10px 20px", # <-- Slightly wider padding for a better PC click target
+            "margin":"0px 5px", # FIXED: Adds slight spacing between buttons
+            "padding":"10px 20px", 
+            "border-radius": "8px", # FIXED: Ensures the hover/active states are nice rounded pills
             "--hover-color": "#e9ecef"
         },
         "nav-link-selected": {"background-color": "#ff4b4b", "color": "white", "icon-color": "white"},
@@ -117,7 +119,8 @@ if app_mode == "Analysis Dashboard":
                             hover_data=['image name'], stripmode='overlay',
                             title="KPI 1: Cluster Membership")
             fig1.update_layout(showlegend=False, margin=dict(l=20, r=20, t=40, b=20))
-            st.plotly_chart(fig1, use_container_width=True)
+            # FIXED: Updated deprecation warning
+            st.plotly_chart(fig1, width="stretch")
             
         with col2:
             composition = df.groupby(['Cluster', 'category']).size().reset_index(name='count')
@@ -125,7 +128,8 @@ if app_mode == "Analysis Dashboard":
             fig2 = px.bar(composition, x='Cluster', y='Percentage', color='category', 
                           title="KPI 2: Category Breakdown")
             fig2.update_layout(yaxis_title="Percentage (%)", margin=dict(l=20, r=20, t=40, b=20))
-            st.plotly_chart(fig2, use_container_width=True)
+            # FIXED: Updated deprecation warning
+            st.plotly_chart(fig2, width="stretch")
 
         st.write("---")
         st.subheader("Section B: Metric Analysis Deep Dive")
@@ -136,14 +140,16 @@ if app_mode == "Analysis Dashboard":
             fig3 = px.imshow(heatmap_data, text_auto=True, aspect="auto", color_continuous_scale='Blues',
                              title="KPI 3: Heatmap")
             fig3.update_layout(margin=dict(l=20, r=20, t=40, b=20))
-            st.plotly_chart(fig3, use_container_width=True)
+            # FIXED: Updated deprecation warning
+            st.plotly_chart(fig3, width="stretch")
             
         with col4:
             fig4 = px.scatter(df, x='width', y='height', color='category', size='size',
                               hover_data=['image name'],
                               title="KPI 4: Image Dimensions vs. Size")
             fig4.update_layout(margin=dict(l=20, r=20, t=40, b=20))
-            st.plotly_chart(fig4, use_container_width=True)
+            # FIXED: Updated deprecation warning
+            st.plotly_chart(fig4, width="stretch")
 
         st.write("---")
         st.subheader("Section C: Semantic Similarity Map")
@@ -156,7 +162,8 @@ if app_mode == "Analysis Dashboard":
                               title="KPI 5: 2D Projection Map")
             fig5.update_traces(marker=dict(size=10, opacity=0.8, line=dict(width=1, color='DarkSlateGrey')))
             fig5.update_layout(margin=dict(l=20, r=20, t=40, b=20))
-            st.plotly_chart(fig5, use_container_width=True)
+            # FIXED: Updated deprecation warning
+            st.plotly_chart(fig5, width="stretch")
 
 # ==========================================
 # 5. Mode 2: Food Image Browser (The Menu)
@@ -178,7 +185,6 @@ elif app_mode == "Food Browser":
         else:
             images_to_show = cat_df.head(12) 
             
-            # Adjusted to 2 columns so images are actually visible on mobile
             columns_per_row = 2 
             num_rows = -(-len(images_to_show) // columns_per_row)
             
@@ -194,10 +200,11 @@ elif app_mode == "Food Browser":
                         cluster = row_data['Cluster']
                         
                         with cols[c]:
+                            # FIXED: Updated deprecation warning
                             if os.path.exists(img_path):
-                                st.image(img_path, use_container_width=True)
+                                st.image(img_path, width="stretch")
                             else:
-                                st.image("https://via.placeholder.com/300x300.png?text=Image", use_container_width=True)
+                                st.image("https://via.placeholder.com/300x300.png?text=Image", width="stretch")
                             
                             st.caption(f"**{img_name}** | AI: {cluster}")
 
@@ -212,7 +219,6 @@ elif app_mode == "Live AI Classifier":
     from PIL import Image
     import numpy as np
     
-    # We load the model FIRST and give it a dedicated spinner so the user knows why it's slow!
     @st.cache_resource(show_spinner="Booting up the AI Brain (This takes ~15 seconds on first run)...")
     def load_model():
         model = tf.keras.applications.MobileNetV2(weights='imagenet')
@@ -229,7 +235,8 @@ elif app_mode == "Live AI Classifier":
         with col1:
             st.subheader("Uploaded Image")
             image = Image.open(uploaded_file).convert('RGB')
-            st.image(image, use_container_width=True)
+            # FIXED: Updated deprecation warning
+            st.image(image, width="stretch")
             
         with col2:
             st.subheader("🤖 Predictions")
