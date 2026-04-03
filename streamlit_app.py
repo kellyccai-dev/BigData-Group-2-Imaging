@@ -26,25 +26,41 @@ st.markdown("""
     /* Apply the animation to the main content area */
     .main .block-container {
         animation: fadeIn 0.5s ease-out;
+        padding-top: 2rem; 
     }
 </style>
 """, unsafe_allow_html=True)
 
-st.title("🍔 Interactive Food Image Classification Dashboard")
+st.title("🍔 Interactive Food Image Classification")
 
 # ==========================================
-# 2. Sleek Horizontal Top Navigation
+# 2. Sleek, Mobile-Responsive Top Navigation
 # ==========================================
+# Full PC text is restored! The browser will use CSS 'clamp' to dynamically scale it.
 app_mode = option_menu(
     menu_title=None, 
     options=["Analysis Dashboard", "Food Browser", "Live AI Classifier"], 
-    icons=["bar-chart-line-fill", "grid-fill", "camera-fill"], 
+    icons=["bar-chart-line-fill", "grid-fill", "cpu-fill"], 
     default_index=0,
     orientation="horizontal",
     styles={
-        "container": {"padding": "0!important", "background-color": "#f8f9fa", "border-radius": "8px", "margin-bottom": "20px"},
-        "icon": {"color": "#ff4b4b", "font-size": "18px"}, 
-        "nav-link": {"font-size": "16px", "text-align": "center", "margin":"0px", "--hover-color": "#e9ecef"},
+        "container": {
+            "padding": "0!important", 
+            "background-color": "#f8f9fa", 
+            "border-radius": "8px", 
+            "margin-bottom": "20px",
+            "display": "flex",
+            "flex-wrap": "wrap" # Allows items to stack nicely on extremely thin screens
+        },
+        # clamp(mobile_min, growth_rate, pc_max)
+        "icon": {"color": "#ff4b4b", "font-size": "clamp(14px, 2vw, 18px)"}, 
+        "nav-link": {
+            "font-size": "clamp(12px, 1.5vw, 16px)", 
+            "text-align": "center", 
+            "margin":"0px", 
+            "padding":"10px 5px", 
+            "--hover-color": "#e9ecef"
+        },
         "nav-link-selected": {"background-color": "#ff4b4b", "color": "white", "icon-color": "white"},
     }
 )
@@ -91,8 +107,7 @@ if app_mode == "Analysis Dashboard":
     else:
         import plotly.express as px
         
-        st.markdown("### Interactive Model Performance & Interpretation Metrics")
-        st.markdown("These charts are generated dynamically from your Orange output data. **Hover your mouse over the plots to interact with them!**")
+        st.markdown("### Model Performance & Metrics")
         
         st.write("---")
         st.subheader("Section A: Cluster Overview & Composition")
@@ -101,17 +116,17 @@ if app_mode == "Analysis Dashboard":
         with col1:
             fig1 = px.strip(df, x='Cluster', y='category', color='category', 
                             hover_data=['image name'], stripmode='overlay',
-                            title="KPI 1: Cluster Membership Dot Plot")
-            fig1.update_layout(showlegend=False)
-            st.plotly_chart(fig1, width="stretch")
+                            title="KPI 1: Cluster Membership")
+            fig1.update_layout(showlegend=False, margin=dict(l=20, r=20, t=40, b=20))
+            st.plotly_chart(fig1, use_container_width=True)
             
         with col2:
             composition = df.groupby(['Cluster', 'category']).size().reset_index(name='count')
             composition['Percentage'] = composition.groupby('Cluster')['count'].transform(lambda x: x / x.sum() * 100)
             fig2 = px.bar(composition, x='Cluster', y='Percentage', color='category', 
-                          title="KPI 2: Category Breakdown (100% Stacked Bar)")
-            fig2.update_layout(yaxis_title="Percentage (%)")
-            st.plotly_chart(fig2, width="stretch")
+                          title="KPI 2: Category Breakdown")
+            fig2.update_layout(yaxis_title="Percentage (%)", margin=dict(l=20, r=20, t=40, b=20))
+            st.plotly_chart(fig2, use_container_width=True)
 
         st.write("---")
         st.subheader("Section B: Metric Analysis Deep Dive")
@@ -120,56 +135,52 @@ if app_mode == "Analysis Dashboard":
         with col3:
             heatmap_data = df.groupby(['category', 'Cluster']).size().unstack(fill_value=0)
             fig3 = px.imshow(heatmap_data, text_auto=True, aspect="auto", color_continuous_scale='Blues',
-                             title="KPI 3: Category to Cluster Heatmap")
-            st.plotly_chart(fig3, width="stretch")
+                             title="KPI 3: Heatmap")
+            fig3.update_layout(margin=dict(l=20, r=20, t=40, b=20))
+            st.plotly_chart(fig3, use_container_width=True)
             
         with col4:
             fig4 = px.scatter(df, x='width', y='height', color='category', size='size',
                               hover_data=['image name'],
-                              title="KPI 4: Image Dimensions vs. File Size")
-            st.plotly_chart(fig4, width="stretch")
+                              title="KPI 4: Image Dimensions vs. Size")
+            fig4.update_layout(margin=dict(l=20, r=20, t=40, b=20))
+            st.plotly_chart(fig4, use_container_width=True)
 
         st.write("---")
-        st.subheader("Section C: Classification Similarity Map")
-        st.markdown("""
-        #### **KPI 5: 2D Semantic Similarity Map (Interactive)**
-        We use an algorithm called PCA to project the 2,048 mathematical features the machine learned for each image down into an interactive 2D map. **Images visually clustered close together here share structural similarities according to the model.**
-        """)
+        st.subheader("Section C: Semantic Similarity Map")
         
         df_pca = get_pca_data(df)
         
         if df_pca is not None:
             fig5 = px.scatter(df_pca, x='PCA1', y='PCA2', color='Cluster', symbol='category',
                               hover_data=['image name', 'category', 'width', 'height'],
-                              title="Interactive Cluster Similarity Map",
-                              height=600)
-            fig5.update_traces(marker=dict(size=12, opacity=0.8, line=dict(width=1, color='DarkSlateGrey')))
-            st.plotly_chart(fig5, width="stretch")
-        else:
-            st.warning("Machine learning feature columns (n0-n2047) not found in the dataset.")
+                              title="KPI 5: 2D Projection Map")
+            fig5.update_traces(marker=dict(size=10, opacity=0.8, line=dict(width=1, color='DarkSlateGrey')))
+            fig5.update_layout(margin=dict(l=20, r=20, t=40, b=20))
+            st.plotly_chart(fig5, use_container_width=True)
 
 # ==========================================
 # 5. Mode 2: Food Image Browser (The Menu)
 # ==========================================
 elif app_mode == "Food Browser":
-    st.header("Search & Visualize Food Menu")
+    st.header("Search Food Menu")
     
     if df is None:
-        st.error("⚠️ Please upload `Embedded-images.csv` to enable the menu features.")
+        st.error("⚠️ Please upload `Embedded-images.csv`.")
     else:
         categories = sorted(df['category'].unique().tolist())
         search_category = st.selectbox("Select a Food Category to View:", categories)
         
-        st.subheader(f"Menu Items: {search_category}")
-        
+        st.subheader(f"Items: {search_category}")
         cat_df = df[df['category'] == search_category]
         
         if len(cat_df) == 0:
-            st.info("No images found for this category in the dataset.")
+            st.info("No images found for this category.")
         else:
             images_to_show = cat_df.head(12) 
             
-            columns_per_row = 4
+            # Adjusted to 2 columns so images are actually visible on mobile
+            columns_per_row = 2 
             num_rows = -(-len(images_to_show) // columns_per_row)
             
             for r in range(num_rows):
@@ -187,42 +198,44 @@ elif app_mode == "Food Browser":
                             if os.path.exists(img_path):
                                 st.image(img_path, use_container_width=True)
                             else:
-                                st.image("https://via.placeholder.com/300x300.png?text=Upload+Images", use_container_width=True)
+                                st.image("https://via.placeholder.com/300x300.png?text=Image", use_container_width=True)
                             
-                            st.caption(f"**{img_name}** | AI Assigned: {cluster}")
+                            st.caption(f"**{img_name}** | AI: {cluster}")
 
 # ==========================================
 # 6. Mode 3: Live AI Image Classifier
 # ==========================================
 elif app_mode == "Live AI Classifier":
-    st.header("Upload a Food Image for Live AI Classification")
-    st.markdown("Upload a picture of food, and our built-in deep learning model (MobileNetV2) will try to identify it in real-time!")
+    st.header("Live AI Classification")
+    st.markdown("Upload a picture of food, and our AI will analyze it.")
     
+    import tensorflow as tf
     from PIL import Image
     import numpy as np
-    import tensorflow as tf
     
-    uploaded_file = st.file_uploader("Choose an image file (JPG/PNG/WEBP)...", type=["jpg", "jpeg", "png", "webp"])
-    
-    @st.cache_resource
+    # We load the model FIRST and give it a dedicated spinner so the user knows why it's slow!
+    @st.cache_resource(show_spinner="Booting up the AI Brain (This takes ~15 seconds on first run)...")
     def load_model():
         model = tf.keras.applications.MobileNetV2(weights='imagenet')
         return model
+        
+    model = load_model()
+    
+    uploaded_file = st.file_uploader("Choose an image file...", type=["jpg", "jpeg", "png", "webp"])
     
     if uploaded_file is not None:
+        st.write("---")
         col1, col2 = st.columns(2)
         
         with col1:
-            st.subheader("Your Uploaded Image")
+            st.subheader("Uploaded Image")
             image = Image.open(uploaded_file).convert('RGB')
             st.image(image, use_container_width=True)
             
         with col2:
-            st.subheader("🤖 AI Predictions")
-            with st.spinner("The AI is analyzing the pixels..."):
+            st.subheader("🤖 Predictions")
+            with st.spinner("Analyzing pixels..."):
                 try:
-                    model = load_model()
-                    
                     img_resized = image.resize((224, 224))
                     img_array = tf.keras.preprocessing.image.img_to_array(img_resized)
                     img_array = np.expand_dims(img_array, axis=0)
@@ -238,4 +251,4 @@ elif app_mode == "Live AI Classifier":
                         st.caption(f"Confidence: {probability * 100:.2f}%")
                         
                 except Exception as e:
-                    st.error(f"Oops! The AI encountered an error processing this image: {e}")
+                    st.error(f"Error processing image: {e}")
