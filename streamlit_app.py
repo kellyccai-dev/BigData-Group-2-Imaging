@@ -36,7 +36,6 @@ st.title("🍔 Interactive Food Image Classification")
 # ==========================================
 # 2. Sleek, Mobile-Responsive Top Navigation
 # ==========================================
-# Full PC text is restored! The browser will use CSS 'clamp' to dynamically scale it.
 app_mode = option_menu(
     menu_title=None, 
     options=["Analysis Dashboard", "Food Browser", "Live AI Classifier"], 
@@ -50,15 +49,15 @@ app_mode = option_menu(
             "border-radius": "8px", 
             "margin-bottom": "20px",
             "display": "flex",
-            "flex-wrap": "wrap" # Allows items to stack nicely on extremely thin screens
+            "flex-wrap": "wrap",
+            "justify-content": "space-evenly" # <-- The magic fix for the PC empty space!
         },
-        # clamp(mobile_min, growth_rate, pc_max)
         "icon": {"color": "#ff4b4b", "font-size": "clamp(14px, 2vw, 18px)"}, 
         "nav-link": {
             "font-size": "clamp(12px, 1.5vw, 16px)", 
             "text-align": "center", 
             "margin":"0px", 
-            "padding":"10px 5px", 
+            "padding":"10px 20px", # <-- Slightly wider padding for a better PC click target
             "--hover-color": "#e9ecef"
         },
         "nav-link-selected": {"background-color": "#ff4b4b", "color": "white", "icon-color": "white"},
