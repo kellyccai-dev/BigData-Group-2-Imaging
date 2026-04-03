@@ -34,7 +34,11 @@ df = load_data()
 # ==========================================
 with st.sidebar:
     st.title("Main Navigation")
-    app_mode = st.radio("Choose the view", ["📊 Interactive Model Analysis", "🍽️ Food Image Browser (The Menu)"])
+    app_mode = st.radio("Choose the view", [
+    "📊 Interactive Model Analysis", 
+    "🍽️ Food Image Browser (The Menu)",
+    "📸 Live AI Image Classifier" # <-- Added this line
+])
     
     st.markdown("---")
     st.title("⚙️ Repository Setup Instructions")
@@ -174,3 +178,59 @@ elif app_mode == "🍽️ Food Image Browser (The Menu)":
                                 st.image("https://via.placeholder.com/300x300.png?text=Upload+Images+To+GitHub", use_column_width=True)
                             
                             st.caption(f"**{img_name}** | AI Assigned: {cluster}")
+# ==========================================
+# 6. Mode 3: Live AI Image Classifier
+# ==========================================
+elif app_mode == "📸 Live AI Image Classifier":
+    st.header("Upload a Food Image for Live AI Classification")
+    st.markdown("Upload a picture of food, and our built-in deep learning model (MobileNetV2) will try to identify it in real-time!")
+    
+    # We import these here so they only load when this specific page is opened
+    from PIL import Image
+    import numpy as np
+    import tensorflow as tf
+    
+    # 1. File Uploader Widget
+    uploaded_file = st.file_uploader("Choose an image file (JPG/PNG)...", type=["jpg", "jpeg", "png"])
+    
+    # 2. Load the AI Model (Cached so it doesn't download every time)
+    @st.cache_resource
+    def load_model():
+        # MobileNetV2 is fast and lightweight for web apps
+        model = tf.keras.applications.MobileNetV2(weights='imagenet')
+        return model
+    
+    if uploaded_file is not None:
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("Your Uploaded Image")
+            # Open and display the image
+            image = Image.open(uploaded_file)
+            st.image(image, use_column_width=True)
+            
+        with col2:
+            st.subheader("🤖 AI Predictions")
+            with st.spinner("The AI is analyzing the pixels..."):
+                try:
+                    model = load_model()
+                    
+                    # 3. Preprocess the image to fit the AI's required format (224x224 pixels)
+                    img_resized = image.resize((224, 224))
+                    img_array = tf.keras.preprocessing.image.img_to_array(img_resized)
+                    img_array = np.expand_dims(img_array, axis=0)
+                    img_array = tf.keras.applications.mobilenet_v2.preprocess_input(img_array)
+                    
+                    # 4. Make the prediction
+                    predictions = model.predict(img_array)
+                    decoded_preds = tf.keras.applications.mobilenet_v2.decode_predictions(predictions, top=3)[0]
+                    
+                    # 5. Display the results beautifully
+                    st.success("Analysis Complete!")
+                    for i, (imagenet_id, label, probability) in enumerate(decoded_preds):
+                        st.write(f"**#{i+1}: {label.replace('_', ' ').title()}**")
+                        st.progress(float(probability))
+                        st.caption(f"Confidence: {probability * 100:.2f}%")
+                        
+                except Exception as e:
+                    st.error(f"Oops! The AI encountered an error processing this image: {e}")
