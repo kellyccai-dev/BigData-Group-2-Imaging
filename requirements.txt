@@ -1,7 +1,8 @@
 streamlit
 pandas
-plotly
-scikit-learn
-Pillow
-tensorflow-cpu
 streamlit-option-menu
+scikit-learn
+plotly
+tensorflow
+Pillow
+numpy
