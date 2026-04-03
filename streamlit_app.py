@@ -152,11 +152,11 @@ elif app_mode == "Food Browser":
                         st.caption(f"**{item['image name']}**")
 
 # ==========================================
-# 6. Mode 3: Hybrid AI (WEBP Support & Math Fixed)
+# 6. Mode 3: Hybrid AI (Top-3 Voting System)
 # ==========================================
 elif app_mode == "Hybrid Classifier":
     st.title("🤖 Pro Hybrid Classifier")
-    st.markdown("Supports **JPG, PNG, and WEBP**.")
+    st.markdown("Supports **JPG, PNG, and WEBP**. Now using Top-3 Consensus Voting.")
     
     file = st.file_uploader("Upload Image", type=["jpg", "png", "jpeg", "webp"])
     
@@ -168,41 +168,57 @@ elif app_mode == "Hybrid Classifier":
         with st.spinner("Analyzing 2,048 visual parameters..."):
             img_resized = img.resize((224, 224))
             input_img = np.expand_dims(tf.keras.preprocessing.image.img_to_array(img_resized), axis=0)
-            
-            # Using ResNet50 specific preprocessing
             input_pre = tf.keras.applications.resnet50.preprocess_input(input_img)
             
-            # 1. Feature Extraction (Outputs 2048 to match CSV)
+            # 1. Feature Extraction
             uploaded_features = base_model.predict(input_pre)
             
             # 2. Similarity Search against CSV
             n_cols = [c for c in df.columns if c.startswith('n') and c[1:].isdigit()]
             dataset_features = df[n_cols].values
             
-            similarities = cosine_similarity(uploaded_features, dataset_features)
-            match_idx = np.argmax(similarities)
-            match_data = df.iloc[match_idx]
-            match_score = similarities[0][match_idx]
+            # Get similarities for all images
+            similarities = cosine_similarity(uploaded_features, dataset_features)[0]
+            
+            # 3. GET THE TOP 3 MATCHES INSTEAD OF JUST 1
+            top_3_idx = similarities.argsort()[-3:][::-1]
+            top_3_matches = df.iloc[top_3_idx]
+            top_3_scores = similarities[top_3_idx]
+            
+            best_match = top_3_matches.iloc[0]
+            best_score = top_3_scores[0]
+            
+            # Find the most common category among the Top 3
+            consensus_category = top_3_matches['category'].mode()[0]
             
             with col_res:
                 st.subheader("Classification Result")
                 
-                if match_score > 0.65:
-                    st.success(f"**Category: {match_data['category']}**")
-                    st.info(f"Verified against: {match_data['image name']}")
+                # LOWERED THRESHOLD & ADDED CONSENSUS LOGIC
+                if best_score > 0.45 or consensus_category == best_match['category']:
+                    st.success(f"**Category: {consensus_category}**")
+                    st.info(f"Verified against top dataset matches.")
                 else:
                     preds = full_model.predict(input_pre)
                     label = tf.keras.applications.resnet50.decode_predictions(preds, top=1)[0][0][1]
                     st.warning(f"Uncertain Match. AI Guess: {label.replace('_', ' ').title()}")
                 
-                st.metric("Visual Similarity Score", f"{match_score*100:.1f}%")
-                st.progress(float(match_score))
+                st.metric("Top Visual Similarity Score", f"{best_score*100:.1f}%")
+                st.progress(float(min(best_score, 1.0)))
                 
-                with st.expander("Show Closest Match from Dataset"):
-                    try:
-                        if os.path.exists(str(match_data['image'])):
-                            st.image(match_data['image'], width=200)
-                        else:
-                            st.write("(Image file not found in directory)")
-                    except:
-                        st.write("(Error loading reference image)")
+                with st.expander("See the Top 3 Matches from your Dataset"):
+                    st.write("The AI found these three images visually closest to your upload:")
+                    
+                    # Show the top 3 images side-by-side
+                    match_cols = st.columns(3)
+                    for i in range(3):
+                        with match_cols[i]:
+                            try:
+                                match_img_path = str(top_3_matches.iloc[i]['image'])
+                                if os.path.exists(match_img_path):
+                                    st.image(match_img_path, use_container_width=True)
+                                else:
+                                    st.image("https://via.placeholder.com/150", use_container_width=True)
+                                st.caption(f"{top_3_matches.iloc[i]['category']} ({top_3_scores[i]*100:.0f}%)")
+                            except:
+                                st.write("Error loading image")
